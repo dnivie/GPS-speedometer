@@ -5,5 +5,5 @@
 - NEO-6M GPS module
 
 ### TODO:
-- [] Fix compass function
-- [] Design screen frame/mounting CAD-file
+- [ ] Fix compass function
+- [ ] Design screen frame/mounting CAD-file
