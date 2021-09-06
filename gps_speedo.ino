@@ -1,6 +1,9 @@
 #include <SoftwareSerial.h> 
-#include <TinyGPS.h> 
+//#include <TinyGPS.h> 
+#include "TinyGPS++.h"
 #include <U8g2lib.h>
+#include <SoftwareSerial.h>
+#include <Wire.h>
 
 // Uncomment the type of screen that is in use
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
@@ -15,22 +18,26 @@ gps speedometer
 HUD
 kompass
 */
+int RX = 2, TX = 3;
+SoftwareSerial ss(RX, TX);
+TinyGPSPlus gps;
 
 //float lat = 59.9134,lon = 10.7549; // create variable for latitude and longitude object  
 float lat1 = 0.0000, lon1 = 0.0000;
 float lat2 = 0.0000, lon2 = 0.0000;
 SoftwareSerial gpsSerial(3,4); //rx,tx 
 
-TinyGPS gps; // create gps object 
+//TinyGPS gps; // create gps object 
 
 unsigned long startMillis;  //timer
 unsigned long currentMillis;
-const unsigned long period = 500;  // read sensor interval 500 ms
+const unsigned long period = 100;  // read sensor interval 500 ms
 
 void setup(){ 
-  //Serial.begin(9600); // connect serial 
+  Serial.begin(9600); // connect serial 
   //Serial.println("The GPS Received Signal:"); 
-  gpsSerial.begin(9600); // connect gps sensor 
+  //gpsSerial.begin(9600); // connect gps sensor 
+  //gpssoft.begin(9600);
   u8g2.begin();
   startMillis = millis(); //start timer
   
@@ -38,27 +45,55 @@ void setup(){
 
 
 void loop(){
-  int directionNr = 1;
-  double speed_kmh = 0;
-  char lastDirection[5] = {'N', 'S', 'E', 'W'};
+  //int directionNr = 1;
+  //double speed_kmh = 0;
+  //char lastDirection[5] = {'N', 'S', 'E', 'W'};
   currentMillis = millis();
+  
+  if (currentMillis - startMillis >= period){
+  while (ss.available() > 0)
+      if (gps.encode(ss.read()))
+  
+  if (gps.location.isUpdated())
+  {
+    Serial.print("LAT="); Serial.print(gps.location.lat(), 6);
+    Serial.print("LNG="); Serial.println(gps.location.lng(), 6);
+    Serial.println(gps.date.day());
+    Serial.println(gps.date.month());
+    Serial.println(gps.date.year());
+    Serial.println(gps.time.value());
+    Serial.println(gps.course.deg());
+    Serial.println(gps.altitude.meters());
+    Serial.println(gps.satellites.value());
+  }
+  
+  if (millis() > 5000 && gps.charsProcessed() < 10)
+  {
+    Serial.println("error");
+    while (true);
+  }
+  /*
   if (currentMillis - startMillis >= period){
     // read gps
+    
     while(gpsSerial.available()){ // check for gps data 
     if( gps.encode(gpsSerial.read()) ){ // encode gps data   
       gps.f_get_position(&lat2,&lon2); // get latitude and longitude 
     } 
+    
+    
     speed_kmh = speed_calculation(lat1, lon1, lat2, lon2);
     directionNr = compass(lat1, lon1, lat2, lon2);
     lat1 = lat2;  // set previous position
     lon1 = lat2;
     // nr.2 is the latest reading
-  }
+  }*/
 
   //String latitude = String(lat,6); 
   //String longitude = String(lon,6); 
-  //Serial.println(latitude+";"+longitude);  
-  }
+  //Serial.println(latitude+";"+longitude);
+    }
+  
 
   // display
   u8g2.firstPage();
@@ -66,9 +101,13 @@ void loop(){
 
     u8g2.setFont(u8g2_font_fub30_tf);
     char cstr[6];
-    dtostrf(speed_kmh, 1, 1, cstr);
-    u8g2.drawStr(0, 39, cstr);
-
+    if (gps.speed.isValid()){
+      dtostrf(gps.speed.kmph(), 1, 1, cstr);
+      u8g2.drawStr(0, 39, cstr);  
+    }
+    else{
+      u8g2.drawStr(0, 39, "no data");
+    }
     u8g2.setFont(u8g2_font_fub11_tf);
     u8g2.drawStr(0, 60, "km/h");
     //char cstr1[2];
